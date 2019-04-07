@@ -13,6 +13,9 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -23,19 +26,26 @@ import static java.util.Arrays.asList;
 
 public class GameActivity extends AppCompatActivity {
 
+    FirebaseDatabase database = FirebaseDatabase.getInstance();
+    DatabaseReference myGameRef;
     TextView timerD, scoreD, quesD, correctD, resultD;
     TextView t1, t2, t3;
     Button op1, op2, op3, op4;
     GridLayout answerOps;
     int gameLock = 0, checkLock = 0, v1, v2, gameCounter = 0, correctCheck = 0, correctAnswer = 0;
+    String ques;
     List<String> correctChoices = new ArrayList<>();
     List<String> operators = new ArrayList<>(asList("+", "-", "*", "/"));
     Random rand = new Random();
+    List<GameData> userData = new ArrayList<>();
+    GameData obj;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
+
+        myGameRef = database.getReference("Rajat");
 
         timerD = findViewById(R.id.timerDisp);
         scoreD = findViewById(R.id.scoreDisp);
@@ -79,6 +89,7 @@ public class GameActivity extends AppCompatActivity {
     }
 
     public void startQuiz() {
+        obj = new GameData();
         if (gameLock == 0) {
             int temp = rand.nextInt(4);
             String operator = operators.get(temp);
@@ -106,14 +117,26 @@ public class GameActivity extends AppCompatActivity {
                     correctD.setVisibility(View.VISIBLE);
                     correctD.setText("Correct!");
                     view.setBackground(getResources().getDrawable(R.drawable.correct));
+                    obj.setCorrectAns(Integer.toString(correctAnswer));
+                    obj.setUserAns(Integer.toString(correctAnswer));
                     correctCheck++;
                 } else {
                     correctD.setVisibility(View.VISIBLE);
                     correctD.setText("Incorrect!");
                     view.setBackground(getResources().getDrawable(R.drawable.wrong));
+                    obj.setCorrectAns(Integer.toString(correctAnswer));
+                    obj.setUserAns(correctChoices.get(answerOption));
                 }
 
+                obj.setId(gameCounter);
+                obj.setQues(ques);
+                obj.setOp1(correctChoices.get(0));
+                obj.setOp2(correctChoices.get(1));
+                obj.setOp3(correctChoices.get(2));
+                obj.setOp4(correctChoices.get(3));
+                userData.add(obj);
                 scoreD.setText(Integer.toString(correctCheck) + "/" + Integer.toString(gameCounter));
+
                 new CountDownTimer(500, 500) {
                     @Override
                     public void onTick(long millisUntilFinished) {
@@ -204,6 +227,7 @@ public class GameActivity extends AppCompatActivity {
             correctChoices.clear();
             correctAnswer = v11 * v21;
             quesD.setText(Integer.toString(v11) + " " + ops + " " + Integer.toString(v21));
+            ques = Integer.toString(v11) + " " + ops + " " + Integer.toString(v21);
             int correctChoice = rand.nextInt(4);
             for (int i = 0; i < 4; i++) {
                 if (i == correctChoice) {
@@ -231,6 +255,7 @@ public class GameActivity extends AppCompatActivity {
             correctChoices.clear();
             correctAnswer = v11 / v21;
             quesD.setText(Integer.toString(v11) + " " + ops + " " + Integer.toString(v21));
+            ques = Integer.toString(v11) + " " + ops + " " + Integer.toString(v21);
             int correctChoice = rand.nextInt(4);
             for (int i = 0; i < 4; i++) {
                 if (i == correctChoice) {
@@ -258,7 +283,9 @@ public class GameActivity extends AppCompatActivity {
 
         if (op != 3 && op != 4) {
             quesD.setText(Integer.toString(v1) + " " + ops + " " + Integer.toString(v2));
+            ques = Integer.toString(v1) + " " + ops + " " + Integer.toString(v2);
         }
+
         op1.setText(correctChoices.get(0));
         op2.setText(correctChoices.get(1));
         op3.setText(correctChoices.get(2));
@@ -266,6 +293,7 @@ public class GameActivity extends AppCompatActivity {
     }
 
     public void declareScore() {
+        myGameRef.setValue(userData);
         correctD.setVisibility(View.INVISIBLE);
         timerD.animate().translationXBy(-50).alpha(0).setDuration(2000);
         scoreD.animate().translationXBy(50).alpha(0).setDuration(2000);
